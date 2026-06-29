@@ -38,14 +38,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# 生成済み Prisma Client のエンジン（standalone のトレースに含まれない .prisma）と
-# schema / migrations をコピーする。
-# #8: 起動前に prisma migrate deploy を実行するため CLI（prisma パッケージ）も同梱する。
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-# @prisma/config (prisma 6.x) が effect パッケージを require するため同梱する。
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/effect ./node_modules/effect
+# standalone の最小 node_modules を builder の完全版で上書きする。
+# prisma migrate deploy (CLI) が effect / fast-check 等の推移的依存を必要とするため、
+# 個別コピーではなく完全な node_modules を同梱する。
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 USER nextjs
