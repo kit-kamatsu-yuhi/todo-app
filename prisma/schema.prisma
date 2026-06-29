@@ -1,0 +1,9 @@
+// Issue #7: 接続確立のみ。業務モデル（User/Todo 等）は #8 で追加する。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
