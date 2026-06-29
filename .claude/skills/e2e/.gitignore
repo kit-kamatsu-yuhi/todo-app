@@ -1,0 +1,7 @@
+.env
+.env.local
+.env.ci
+_logs/
+screenshots/
+test-results/
+test-results-*.json

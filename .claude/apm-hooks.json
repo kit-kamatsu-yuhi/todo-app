@@ -1,0 +1,182 @@
+{
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/auto-format.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "Edit|Write|MultiEdit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/scan-skill-on-write.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/auto-format.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    },
+    {
+      "matcher": "Edit|Write|MultiEdit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/scan-skill-on-write.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/protect-sensitive-files.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/check-secrets.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/block-dangerous-commands.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/recommend-create-pr.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/push-gate.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "Skill",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/plan-gate.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/protect-sensitive-files.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/check-secrets.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/block-dangerous-commands.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/recommend-create-pr.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/push-gate.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    },
+    {
+      "matcher": "Skill",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/plan-gate.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    }
+  ],
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/session-start-context-load.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/audit-permissions.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/session-start-context-load.sh"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/audit-permissions.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/remind-save-context.sh"
+        }
+      ],
+      "_apm_source": "dev-harness"
+    },
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/scripts/remind-save-context.sh"
+        }
+      ],
+      "_apm_source": "exoloop"
+    }
+  ]
+}

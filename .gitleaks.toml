@@ -1,0 +1,21 @@
+title = "todo-app gitleaks config"
+
+[extend]
+# gitleaks 内蔵ルール（AWS / GCP / GitHub / Slack / JWT 等）を全て有効化
+useDefault = true
+
+[allowlist]
+description = "プロジェクト共通の allowlist"
+paths = [
+  # exoloop が APM で配布する skill ドキュメント・テンプレート。
+  # 解説用のサンプル secret（ghp_xxxx... / sk_live_abc123 等）を多数含むため除外する。
+  # 自分たちが書くアプリコード（app/ src/ prisma/ 等）は引き続きスキャン対象。
+  '''\.claude/skills/.*''',
+  # 環境変数サンプル（.env.example 等）
+  '''.*\.example$''',
+  '''.*\.example\..*''',
+  # 本ファイル自体（example を含むため）
+  '''\.gitleaks\.toml''',
+]
+# 検出値に以下の語を含む場合は誤検知として除外
+stopwords = ["example", "placeholder", "dummy", "sample", "xxxx", "abc123", "your-", "changeme"]

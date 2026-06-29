@@ -1,0 +1,10 @@
+name: todo-app
+version: 1.0.0
+description: APM project for todo-app
+author: kamatsu.yuhi
+dependencies:
+  apm:
+  - Clickan/exoloop#v1.14.0
+  mcp: []
+includes: auto
+scripts: {}

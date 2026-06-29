@@ -1,0 +1,9 @@
+[project]
+name = "markitdown-convert"
+version = "0.1.0"
+description = "Claude Code skill that converts PDF / Office / audio / YouTube to Markdown via Microsoft markitdown."
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = [
+    "markitdown[all]==0.1.5",
+]

@@ -1,0 +1,21 @@
+services:
+  auto-dev:
+    build:
+      context: .devcontainer/auto-dev
+      dockerfile: Dockerfile
+    container_name: auto-dev-{{REPO_NAME}}
+    restart: unless-stopped
+    env_file:
+      - .env.agent
+    volumes:
+      - auto-dev-state:/var/auto-dev
+      - auto-dev-claude:/home/autodev/.claude
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  auto-dev-state:
+  auto-dev-claude:

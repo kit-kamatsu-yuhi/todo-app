@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "aws-deploy": {
+      "command": "uvx",
+      "args": ["awslabs.deploy-on-aws-mcp@latest"],
+      "env": {
+        "AWS_PROFILE": "default"
+      }
+    },
+    "aws-cost-analysis": {
+      "command": "uvx",
+      "args": ["awslabs.cost-analysis-mcp@latest"],
+      "env": {
+        "AWS_PROFILE": "default"
+      }
+    }
+  }
+}

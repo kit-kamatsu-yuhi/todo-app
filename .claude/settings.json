@@ -1,0 +1,91 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/auto-format.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/scan-skill-on-write.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/protect-sensitive-files.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/check-secrets.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/block-dangerous-commands.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/recommend-create-pr.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/push-gate.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/plan-gate.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/session-start-context-load.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/audit-permissions.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/scripts/remind-save-context.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

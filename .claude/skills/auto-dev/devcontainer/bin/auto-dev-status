@@ -1,0 +1,108 @@
+#!/bin/bash
+# auto-dev-status — quick health / phase overview
+#
+# Usage (inside container):
+#   docker exec auto-dev-<repo> auto-dev-status
+#
+# Outputs heartbeat freshness, phase distribution across tracked issues, and
+# the last few error metrics. Designed to be safe even on a partially
+# initialized container (no network calls).
+
+set -uo pipefail
+
+STATE_DIR="${STATE_DIR:-/var/auto-dev/state}"
+LOG_DIR="${LOG_DIR:-/var/auto-dev/logs}"
+METRICS_DIR="${AUTO_DEV_METRICS_DIR:-/var/auto-dev/metrics}"
+HEARTBEAT_FILE="${HEARTBEAT_FILE:-${STATE_DIR}/heartbeat}"
+
+hr() { printf '%s\n' "----------------------------------------"; }
+
+echo "auto-dev-status"
+hr
+
+# --- Heartbeat ---
+if [ -f "$HEARTBEAT_FILE" ]; then
+    hb_ts=$(cat "$HEARTBEAT_FILE" 2>/dev/null || echo "")
+    if [ -n "$hb_ts" ]; then
+        hb_epoch=$(date -d "$hb_ts" +%s 2>/dev/null || echo 0)
+        now_epoch=$(date +%s)
+        age=$(( now_epoch - hb_epoch ))
+        echo "heartbeat: ${hb_ts} (age ${age}s)"
+    else
+        echo "heartbeat: file exists but empty"
+    fi
+else
+    echo "heartbeat: (missing ${HEARTBEAT_FILE})"
+fi
+hr
+
+# --- Phase distribution ---
+echo "issue states:"
+if [ -d "$STATE_DIR" ]; then
+    declare -A COUNTS=()
+    shopt -s nullglob
+    total=0
+    for f in "${STATE_DIR}"/issue-*.state; do
+        [ -f "$f" ] || continue
+        state=$(cat "$f" 2>/dev/null | head -n 1)
+        state="${state:-unknown}"
+        COUNTS[$state]=$(( ${COUNTS[$state]:-0} + 1 ))
+        total=$(( total + 1 ))
+    done
+    shopt -u nullglob
+    if [ "$total" -eq 0 ]; then
+        echo "  (no tracked issues)"
+    else
+        for k in "${!COUNTS[@]}"; do
+            printf "  %-16s %d\n" "$k" "${COUNTS[$k]}"
+        done
+        printf "  %-16s %d\n" "total" "$total"
+    fi
+else
+    echo "  (state dir missing: ${STATE_DIR})"
+fi
+hr
+
+# --- Active locks ---
+echo "active locks:"
+if [ -d "$STATE_DIR" ]; then
+    shopt -s nullglob
+    found=0
+    for d in "${STATE_DIR}"/issue-*.lock.d; do
+        [ -d "$d" ] || continue
+        pid=$(cat "${d}/pid" 2>/dev/null || echo "?")
+        ts=$(cat "${d}/timestamp" 2>/dev/null || echo "?")
+        name=$(basename "$d")
+        alive="dead"
+        if [ "$pid" != "?" ] && kill -0 "$pid" 2>/dev/null; then
+            alive="alive"
+        fi
+        echo "  ${name}  pid=${pid} (${alive}) ts=${ts}"
+        found=$(( found + 1 ))
+    done
+    shopt -u nullglob
+    if [ "$found" -eq 0 ]; then
+        echo "  (none)"
+    fi
+fi
+hr
+
+# --- Recent errors from metrics ---
+echo "recent failures (metrics):"
+today=$(date -u +"%Y%m%d")
+metrics_file="${METRICS_DIR}/daily-${today}.jsonl"
+if [ -f "$metrics_file" ]; then
+    if command -v jq >/dev/null 2>&1; then
+        tail -n 200 "$metrics_file" \
+            | jq -c 'select(.status != "ok")' 2>/dev/null \
+            | tail -n 10 \
+            | sed 's/^/  /' || echo "  (jq parse error)"
+    else
+        tail -n 10 "$metrics_file" | sed 's/^/  /'
+    fi
+else
+    echo "  (no metrics file ${metrics_file})"
+fi
+hr
+
+echo "done."
