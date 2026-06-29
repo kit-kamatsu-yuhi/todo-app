@@ -1,0 +1,19 @@
+node_modules
+.next
+out
+build
+coverage
+*.db
+package-lock.json
+
+# Repo tooling / non-application content (not maintained by this app)
+.claude
+apm_modules
+apm.lock.yaml
+apm.yml
+.mcp.json
+raw
+wiki
+scripts
+CLAUDE.md
+AGENTS.md
