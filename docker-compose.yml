@@ -13,7 +13,7 @@ services:
       # named volume をマウントしてコンテナ再起動後も DB ファイルを保持する。
       - db-data:/app/data
     # #8: 業務モデル追加に伴い、起動前に prisma migrate deploy を実行してスキーマを適用する。
-    command: sh -c "npx prisma migrate deploy && node server.js"
+    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node server.js"
     restart: unless-stopped
 
 volumes:
