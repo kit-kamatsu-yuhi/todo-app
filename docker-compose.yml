@@ -12,9 +12,8 @@ services:
     volumes:
       # named volume をマウントしてコンテナ再起動後も DB ファイルを保持する。
       - db-data:/app/data
-    # #7 ではモデルが無いため、SQLite ファイルは Prisma Client の初回接続時に
-    # 自動作成される（マイグレーション不要）。$queryRaw SELECT 1 で接続確認できる。
-    # 業務モデルを追加する #8 以降で prisma migrate deploy を起動前に実行する。
+    # #8: 業務モデル追加に伴い、起動前に prisma migrate deploy を実行してスキーマを適用する。
+    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node server.js"
     restart: unless-stopped
 
 volumes:

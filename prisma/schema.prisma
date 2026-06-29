@@ -1,4 +1,5 @@
 // Issue #7: 接続確立のみ。業務モデル（User/Todo 等）は #8 で追加する。
+// Issue #8: User / Todo テーブルを追加する。
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,4 +7,26 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  todos        Todo[]
+}
+
+model Todo {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  completed Boolean  @default(false)
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // SQLite は FK インデックスを自動生成しないため明示的に追加する
+  @@index([userId])
 }

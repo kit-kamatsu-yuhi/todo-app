@@ -9,5 +9,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
+    // DB 統合テストの並列実行競合を防ぐためシングルプロセスで実行する
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
 });
