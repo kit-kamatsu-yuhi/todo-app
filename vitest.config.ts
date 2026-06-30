@@ -16,5 +16,9 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    // Prisma binary の cold start（初回18秒程度）に対応するため延長する
+    hookTimeout: 60000,
+    // bcrypt cost=12 は 1回あたり ~1.5 秒かかるためデフォルトの 5s では不足する
+    testTimeout: 15000,
   },
 });
