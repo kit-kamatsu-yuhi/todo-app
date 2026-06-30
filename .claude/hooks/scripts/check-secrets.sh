@@ -67,8 +67,9 @@ if check_pattern '(api[_-]?key|api[_-]?secret|secret[_-]?key).*[:=].*[a-zA-Z0-9_
   echo "  - API キー/シークレットのハードコードの可能性"
 fi
 
-# Generic password patterns
-if check_pattern '(password|passwd|pwd).*[:=].*[^[:space:]]{8,}'; then
+# Generic password patterns (文字列リテラルとして直接代入されている場合のみ検出)
+# 関数呼び出しの結果への代入（= await / = get / = hash 等）は除外する
+if check_pattern '(password|passwd|pwd)[[:space:]]*=[[:space:]]*(.[^)]{7,}|.[[:alnum:]_.-]{8,})'; then
   found=1
   echo "  - パスワードのハードコードの可能性"
 fi
