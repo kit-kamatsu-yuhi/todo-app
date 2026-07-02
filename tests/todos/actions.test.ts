@@ -19,7 +19,14 @@ vi.mock('@/lib/auth/session', () => ({ getSession: vi.fn() }))
 // lib/prisma をテスト用 DB に差し替える。
 vi.mock('@/lib/prisma', () => ({ prisma: testPrisma }))
 
-import { createTodo, deleteTodo, updateTodoTitle, toggleTodo, moveTodo } from '@/app/actions/todos'
+import {
+  createTodo,
+  deleteTodo,
+  updateTodoTitle,
+  toggleTodo,
+  moveTodo,
+  assignCategory,
+} from '@/app/actions/todos'
 import { getSession } from '@/lib/auth/session'
 
 const mockGetSession = vi.mocked(getSession)
@@ -552,5 +559,100 @@ describe('moveTodo', () => {
     })
     expect(todos.map((t) => t.position)).toEqual([0, 1, 2, 3])
     expect(new Set(todos.map((t) => t.position)).size).toBe(todos.length)
+  })
+})
+
+describe('assignCategory', () => {
+  it("should update the todo's categoryId when assigning own category to own todo", async () => {
+    const user = await createUser('assign@example.com')
+    mockGetSession.mockResolvedValue({ userId: user.id } as never)
+
+    const category = await testPrisma.todoCategory.create({
+      data: { userId: user.id, name: '仕事' },
+    })
+    const todo = await testPrisma.todo.create({
+      data: { userId: user.id, title: 'カテゴリ割当対象', position: 0 },
+    })
+
+    await assignCategory(makeFormData({ id: todo.id, categoryId: category.id }))
+
+    const found = await testPrisma.todo.findUnique({ where: { id: todo.id } })
+    expect(found?.categoryId).toBe(category.id)
+  })
+
+  it('should set categoryId to null when unassigning with an empty categoryId', async () => {
+    const user = await createUser('unassign@example.com')
+    mockGetSession.mockResolvedValue({ userId: user.id } as never)
+
+    const category = await testPrisma.todoCategory.create({
+      data: { userId: user.id, name: '仕事' },
+    })
+    const todo = await testPrisma.todo.create({
+      data: { userId: user.id, title: '割当解除対象', position: 0, categoryId: category.id },
+    })
+
+    await assignCategory(makeFormData({ id: todo.id, categoryId: '' }))
+
+    const found = await testPrisma.todo.findUnique({ where: { id: todo.id } })
+    expect(found?.categoryId).toBeNull()
+  })
+
+  it("should be a no-op when the categoryId belongs to another user (ownership check)", async () => {
+    const userA = await createUser('assign-owner-a@example.com')
+    const userB = await createUser('assign-owner-b@example.com')
+
+    const categoryB = await testPrisma.todoCategory.create({
+      data: { userId: userB.id, name: 'B のカテゴリ' },
+    })
+    const todoA = await testPrisma.todo.create({
+      data: { userId: userA.id, title: 'A のタスク', position: 0 },
+    })
+
+    // userA でログイン中に userB のカテゴリ id を渡す
+    mockGetSession.mockResolvedValue({ userId: userA.id } as never)
+
+    await assignCategory(makeFormData({ id: todoA.id, categoryId: categoryB.id }))
+
+    const found = await testPrisma.todo.findUnique({ where: { id: todoA.id } })
+    expect(found?.categoryId).toBeNull()
+  })
+
+  it("should be a no-op when the todo id belongs to another user (ownership check)", async () => {
+    const userA = await createUser('assign-todo-owner-a@example.com')
+    const userB = await createUser('assign-todo-owner-b@example.com')
+
+    const categoryA = await testPrisma.todoCategory.create({
+      data: { userId: userA.id, name: 'A のカテゴリ' },
+    })
+    const todoA = await testPrisma.todo.create({
+      data: { userId: userA.id, title: 'A のタスク', position: 0 },
+    })
+
+    // userB でログイン中に userA の todo id を渡す
+    mockGetSession.mockResolvedValue({ userId: userB.id } as never)
+
+    await assignCategory(makeFormData({ id: todoA.id, categoryId: categoryA.id }))
+
+    const found = await testPrisma.todo.findUnique({ where: { id: todoA.id } })
+    expect(found?.categoryId).toBeNull()
+  })
+
+  it('should redirect to /login and not change the DB when not logged in', async () => {
+    const user = await createUser('assign-guest@example.com')
+    const category = await testPrisma.todoCategory.create({
+      data: { userId: user.id, name: '仕事' },
+    })
+    const todo = await testPrisma.todo.create({
+      data: { userId: user.id, title: '未ログイン時は保持', position: 0 },
+    })
+
+    mockGetSession.mockResolvedValue(null)
+
+    await expect(
+      assignCategory(makeFormData({ id: todo.id, categoryId: category.id })),
+    ).rejects.toThrow('NEXT_REDIRECT:/login')
+
+    const found = await testPrisma.todo.findUnique({ where: { id: todo.id } })
+    expect(found?.categoryId).toBeNull()
   })
 })
