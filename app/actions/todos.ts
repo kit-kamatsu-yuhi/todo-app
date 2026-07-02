@@ -181,3 +181,38 @@ export async function moveTodo(formData: FormData): Promise<void> {
 
   revalidatePath('/')
 }
+
+export async function assignCategory(formData: FormData): Promise<void> {
+  // 多層防御: middleware に依存せず Action 内でも認証を再検証する
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const id = formData.get('id')
+  if (typeof id !== 'string' || id === '') return
+
+  const rawCategoryId = formData.get('categoryId')
+  if (typeof rawCategoryId !== 'string') return
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (rawCategoryId !== '') {
+        // 所有権確認: 他人のカテゴリへの参照を防ぐ
+        const category = await tx.todoCategory.findFirst({
+          where: { id: rawCategoryId, userId: session.userId },
+        })
+        if (!category) return
+      }
+
+      // 所有者チェック: id と userId の複合条件で他人の TODO には物理的に到達しない
+      await tx.todo.updateMany({
+        where: { id, userId: session.userId },
+        data: { categoryId: rawCategoryId || null },
+      })
+    })
+  } catch (e) {
+    console.error('[todos] assignCategory error', { userId: session.userId, todoId: id }, e)
+    return
+  }
+
+  revalidatePath('/')
+}

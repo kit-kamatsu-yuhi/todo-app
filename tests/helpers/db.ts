@@ -15,8 +15,9 @@ export async function setupTestDb() {
 }
 
 export async function cleanDb() {
-  // FK 制約の順序を考慮して Session → Todo → User の順で削除する
+  // FK 制約の順序を考慮して Session → Todo → TodoCategory → User の順で削除する
   await testPrisma.session.deleteMany();
   await testPrisma.todo.deleteMany();
+  await testPrisma.todoCategory.deleteMany();
   await testPrisma.user.deleteMany();
 }

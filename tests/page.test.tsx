@@ -11,9 +11,12 @@ vi.mock('next/navigation', () => ({
 // getSession をモックしてログイン済みユーザーを返す。
 vi.mock('@/lib/auth/session', () => ({ getSession: vi.fn() }))
 
-// prisma.todo.findMany をモックする（一覧取得は DB 依存の外部境界）。
+// prisma.todo.findMany / prisma.todoCategory.findMany をモックする（一覧取得は DB 依存の外部境界）。
 vi.mock('@/lib/prisma', () => ({
-  prisma: { todo: { findMany: vi.fn() } },
+  prisma: {
+    todo: { findMany: vi.fn() },
+    todoCategory: { findMany: vi.fn() },
+  },
 }))
 
 import Home from '@/app/page'
@@ -22,6 +25,7 @@ import { prisma } from '@/lib/prisma'
 
 const mockGetSession = vi.mocked(getSession)
 const mockFindMany = vi.mocked(prisma.todo.findMany)
+const mockCategoryFindMany = vi.mocked(prisma.todoCategory.findMany)
 
 const now = new Date()
 
@@ -40,8 +44,10 @@ beforeEach(() => {
       position: 0,
       createdAt: now,
       updatedAt: now,
+      categoryId: null,
     },
   ] as never)
+  mockCategoryFindMany.mockResolvedValue([] as never)
 })
 
 afterEach(() => {
@@ -50,7 +56,7 @@ afterEach(() => {
 
 describe('トップページ', () => {
   it('「todo-app」見出しを表示する', async () => {
-    const ui = await Home()
+    const ui = await Home({})
     render(ui)
 
     expect(
@@ -59,9 +65,31 @@ describe('トップページ', () => {
   })
 
   it('ログインユーザーの TODO 一覧を表示する', async () => {
-    const ui = await Home()
+    const ui = await Home({})
     render(ui)
 
     expect(screen.getByText('サンプルTODO')).toBeInTheDocument()
+  })
+
+  it('searchParams が指定された場合、prisma.todo.findMany の where に categoryId を渡す', async () => {
+    const ui = await Home({ searchParams: Promise.resolve({ category: 'category-1' }) })
+    render(ui)
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'u1',
+          categoryId: 'category-1',
+        }),
+      }),
+    )
+  })
+
+  it('searchParams が指定されない場合、prisma.todo.findMany の where に categoryId を含めない', async () => {
+    const ui = await Home({})
+    render(ui)
+
+    const callArgs = mockFindMany.mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(callArgs.where).not.toHaveProperty('categoryId')
   })
 })

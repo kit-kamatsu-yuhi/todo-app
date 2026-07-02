@@ -1,8 +1,8 @@
-import type { Todo } from '@prisma/client'
-import { deleteTodo, moveTodo, toggleTodo } from '@/app/actions/todos'
+import type { Todo, TodoCategory } from '@prisma/client'
+import { assignCategory, deleteTodo, moveTodo, toggleTodo } from '@/app/actions/todos'
 import TodoTitleEditor from '@/app/components/TodoTitleEditor'
 
-export default function TodoList({ todos }: { todos: Todo[] }) {
+export default function TodoList({ todos, categories }: { todos: Todo[]; categories: TodoCategory[] }) {
   if (todos.length === 0) {
     return <p>TODO がありません</p>
   }
@@ -25,6 +25,18 @@ export default function TodoList({ todos }: { todos: Todo[] }) {
             <input type="hidden" name="id" value={todo.id} />
             <input type="hidden" name="direction" value="down" />
             <button type="submit" disabled={index === todos.length - 1}>▼</button>
+          </form>
+          <form action={assignCategory}>
+            <input type="hidden" name="id" value={todo.id} />
+            <select name="categoryId" defaultValue={todo.categoryId ?? ''}>
+              <option value="">未分類</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit">変更</button>
           </form>
           <form action={deleteTodo}>
             <input type="hidden" name="id" value={todo.id} />

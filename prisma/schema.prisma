@@ -10,12 +10,13 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  createdAt    DateTime  @default(now())
-  todos        Todo[]
-  sessions     Session[]
+  id             String         @id @default(cuid())
+  email          String         @unique
+  passwordHash   String
+  createdAt      DateTime       @default(now())
+  todos          Todo[]
+  sessions       Session[]
+  todoCategories TodoCategory[]
 }
 
 model Session {
@@ -29,17 +30,32 @@ model Session {
 }
 
 model Todo {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  completed  Boolean       @default(false)
+  position   Int
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  categoryId String?
+  category   TodoCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // 同一ユーザー内で position の重複を DB レベルで防止する
+  @@unique([userId, position])
+  // SQLite は FK インデックスを自動生成しないため明示的に追加する
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model TodoCategory {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  completed Boolean  @default(false)
-  position  Int
+  // 同名カテゴリの重複は Issue 要件外のため許容する（一意制約なし）
+  name      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  todos     Todo[]
 
-  // SQLite は FK インデックスを自動生成しないため明示的に追加する
   @@index([userId])
-  // 同一ユーザー内で position の重複を DB レベルで防止する
-  @@unique([userId, position])
 }

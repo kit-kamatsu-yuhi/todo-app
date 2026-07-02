@@ -121,4 +121,39 @@ describe("User / Todo スキーマ統合テスト", () => {
       expect(todosAfter).toHaveLength(0);
     });
   });
+
+  describe("ST6: TodoCategory 削除時の SetNull", () => {
+    it("TodoCategory を削除すると紐づく Todo の categoryId が null になり Todo 自体は残る", async () => {
+      const user = await testPrisma.user.create({
+        data: {
+          email: "category-setnull@example.com",
+          passwordHash: "hashed_password",
+        },
+      });
+
+      const category = await testPrisma.todoCategory.create({
+        data: {
+          userId: user.id,
+          name: "仕事",
+        },
+      });
+
+      const todo = await testPrisma.todo.create({
+        data: {
+          userId: user.id,
+          title: "紐づくタスク",
+          position: 1,
+          categoryId: category.id,
+        },
+      });
+
+      await testPrisma.todoCategory.delete({ where: { id: category.id } });
+
+      const foundTodo = await testPrisma.todo.findUnique({
+        where: { id: todo.id },
+      });
+      expect(foundTodo).not.toBeNull();
+      expect(foundTodo?.categoryId).toBeNull();
+    });
+  });
 });
