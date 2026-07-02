@@ -40,4 +40,6 @@ model Todo {
 
   // SQLite は FK インデックスを自動生成しないため明示的に追加する
   @@index([userId])
+  // 同一ユーザー内で position の重複を DB レベルで防止する
+  @@unique([userId, position])
 }
