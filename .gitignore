@@ -18,10 +18,7 @@ next-env.d.ts
 # testing
 /coverage
 
-# prisma / sqlite
-/prisma/dev.db
-/prisma/dev.db-journal
-/data/
+# local db artifacts（SQLite の名残。誤コミット防止に汎用パターンのみ残す）
 *.db
 *.db-journal
 

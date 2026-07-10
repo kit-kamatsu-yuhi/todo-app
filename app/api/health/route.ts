@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Prisma / SQLite を使うため Edge ではなく Node ランタイムで実行する。
+// Prisma を使うため Edge ではなく Node ランタイムで実行する。
 export const runtime = "nodejs";
 // ヘルスチェックは毎回 DB 接続を確認するためキャッシュしない。
 export const dynamic = "force-dynamic";

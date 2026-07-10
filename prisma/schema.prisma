@@ -1,11 +1,10 @@
-// Issue #7: 接続確立のみ。業務モデル（User/Todo 等）は #8 で追加する。
-// Issue #8: User / Todo テーブルを追加する。
+// TODO アプリの Prisma スキーマ（datasource: PostgreSQL）。
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -43,7 +42,7 @@ model Todo {
 
   // 同一ユーザー内で position の重複を DB レベルで防止する
   @@unique([userId, position])
-  // SQLite は FK インデックスを自動生成しないため明示的に追加する
+  // FK カラムにはインデックスが自動生成されないため明示的に追加する
   @@index([userId])
   @@index([categoryId])
 }

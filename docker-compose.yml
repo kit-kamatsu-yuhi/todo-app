@@ -1,4 +1,24 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      # ローカル開発用の資格情報。本番は Secret Manager 等で注入し、この値は使わない。
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+      POSTGRES_DB: todo
+    ports:
+      - "5432:5432"
+    volumes:
+      # named volume に永続化してコンテナ再起動後もデータを保持する。
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # app の起動前に PostgreSQL が接続を受け付けられる状態か確認する。
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   app:
     build:
       context: .
@@ -6,15 +26,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # SQLite を named volume (/app/data) 配下に置いて永続化する。
-      DATABASE_URL: "file:/app/data/dev.db"
+      DATABASE_URL: "postgresql://todo:todo@db:5432/todo?schema=public"
       NODE_ENV: production
-    volumes:
-      # named volume をマウントしてコンテナ再起動後も DB ファイルを保持する。
-      - db-data:/app/data
-    # #8: 業務モデル追加に伴い、起動前に prisma migrate deploy を実行してスキーマを適用する。
+    depends_on:
+      db:
+        condition: service_healthy
+    # 起動前に prisma migrate deploy でスキーマを適用してから本体を起動する。
     command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node server.js"
     restart: unless-stopped
 
 volumes:
-  db-data:
+  postgres-data:
