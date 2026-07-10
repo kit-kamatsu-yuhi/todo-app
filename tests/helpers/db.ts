@@ -1,23 +1,23 @@
 import { PrismaClient } from "@prisma/client";
-import { execSync } from "child_process";
-import path from "path";
+import { TEST_DATABASE_URL, assertTestDatabase } from "./test-db-url";
 
-const TEST_DB_PATH = path.join(process.cwd(), "prisma", "test.db");
+assertTestDatabase(TEST_DATABASE_URL);
+
+export { TEST_DATABASE_URL };
 
 export const testPrisma = new PrismaClient({
-  datasources: { db: { url: `file:${TEST_DB_PATH}` } },
+  datasources: { db: { url: TEST_DATABASE_URL } },
 });
 
 export async function setupTestDb() {
-  execSync("./node_modules/.bin/prisma migrate deploy", {
-    env: { ...process.env, DATABASE_URL: `file:${TEST_DB_PATH}` },
-  });
+  // マイグレーションは globalSetup で一度だけ行うため、各ファイルでは接続確認に留める
+  await testPrisma.$queryRaw`SELECT 1`;
 }
 
 export async function cleanDb() {
-  // FK 制約の順序を考慮して Session → Todo → TodoCategory → User の順で削除する
-  await testPrisma.session.deleteMany();
-  await testPrisma.todo.deleteMany();
-  await testPrisma.todoCategory.deleteMany();
-  await testPrisma.user.deleteMany();
+  // FK 順序に依存しないよう CASCADE で全テーブルを空にする。
+  // PK はすべて cuid(TEXT) で serial/identity 列が無いため RESTART IDENTITY は不要。
+  await testPrisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "Session", "Todo", "TodoCategory", "User" CASCADE',
+  );
 }

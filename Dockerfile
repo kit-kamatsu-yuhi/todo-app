@@ -30,9 +30,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 --gid nodejs nextjs
 
-# SQLite を置くデータディレクトリを作成し、実行ユーザーに権限を与える。
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
-
 # standalone 出力をコピー（必要最小の node_modules を含む）。
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

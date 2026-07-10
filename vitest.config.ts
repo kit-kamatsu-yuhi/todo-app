@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    globalSetup: ["./tests/helpers/global-setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
     // DB 統合テストの並列実行競合を防ぐためシングルプロセスで実行する
     pool: "forks",
@@ -17,7 +18,7 @@ export default defineConfig({
       },
     },
     // singleFork はプロセス数の制約のみで、ファイル間の非同期 interleaving は防げない。
-    // テストファイルが共有のファイルベース SQLite (prisma/test.db) を使うため、
+    // テストファイルが共有の PostgreSQL テスト DB を使うため、
     // 各ファイルの beforeEach:cleanDb() が他ファイルの実行中データを削除してしまう
     // レースコンディションを防ぐためファイル単位も直列実行にする。
     fileParallelism: false,

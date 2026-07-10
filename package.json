@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:pg": "bash scripts/test-with-postgres.sh",
     "postinstall": "prisma generate"
   },
   "dependencies": {
