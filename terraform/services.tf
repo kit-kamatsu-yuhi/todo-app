@@ -3,14 +3,14 @@
 # 既に有効な API に対しては no-op となる。
 locals {
   required_services = [
-    "compute.googleapis.com",           # VPC / Bastion VM
+    "compute.googleapis.com",           # VPC / サブネット
     "run.googleapis.com",               # Cloud Run
     "sqladmin.googleapis.com",          # Cloud SQL
     "servicenetworking.googleapis.com", # Private Service Access
-    "vpcaccess.googleapis.com",         # Serverless VPC Access コネクタ
-    "iap.googleapis.com",               # IAP トンネル
-    "secretmanager.googleapis.com",     # DB パスワード管理
-    "iam.googleapis.com",               # Service Account
+    "secretmanager.googleapis.com",     # DATABASE_URL 管理
+    "iam.googleapis.com",               # Service Account / IAM
+    "cloudbuild.googleapis.com",        # Cloud Build トリガー
+    "artifactregistry.googleapis.com",  # Docker イメージ格納
   ]
 }
 

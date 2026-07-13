@@ -1,77 +1,84 @@
 # TODO アプリ用 GCP インフラ（Terraform）
 
-Week 8 課題。TODO アプリの土台となる GCP リソースを Terraform で定義する。
-アプリ本体のデプロイと CI/CD は Week 9 で扱うため、Cloud Run は空コンテナ（プレースホルダ）とする。
-
 ## 構成要素
 
 | リソース | 内容 |
 |---------|------|
 | VPC | `todo-vpc`（カスタムサブネット） |
-| サブネット | Bastion 用 `10.10.0.0/24` + Serverless VPC Access コネクタ `/28`（`10.8.0.0/28`） |
+| egress サブネット | `todo-egress-subnet`（`10.10.0.0/24`、Cloud Run Direct VPC egress 用） |
 | Cloud SQL | PostgreSQL 16 / Private IP only / Public IP 無効 / PSA レンジ予約 |
-| IAM | `todo-run-sa`（Cloud Run 用）・`todo-bastion-sa`（踏み台用）を最小権限で作成 |
-| Cloud Run | `todo-app`（hello 画像・VPC コネクタ経由で Private IP 到達可能） |
-| Bastion | `todo-bastion`（e2-micro / 外部 IP なし / systemd-socket-proxyd で DB プロキシ / 既定は停止） |
-| IAP | Bastion への SSH / DB トンネルを指定ユーザーにのみ許可 |
-| Secret Manager | `todo-db-password`（自動生成パスワード） |
+| Cloud Run | `todo-app`（公開、Direct VPC egress、min instance 0 / max instance 2） |
+| Secret Manager | `todo-database-url`（枠のみ作成。値は Terraform では投入しない） |
+| Artifact Registry | `todo-app`（Docker イメージ格納） |
+| Cloud Build | `ci-*` タグでテスト、`cd-*` タグでビルド・push・Cloud Run デプロイ |
+| IAM | `todo-run-sa`（Cloud Run 用）、`todo-build-sa`（Cloud Build 用） |
 
 ## ネットワーク経路
 
+```text
+Cloud Run --Direct VPC egress--> Cloud SQL Private IP
 ```
-Cloud Run --(VPC connector, PRIVATE_RANGES_ONLY)--> Cloud SQL(Private IP)
-手元PC --(IAP tunnel)--> Bastion(systemd-socket-proxyd :5432) --> Cloud SQL(Private IP):5432
+
+## 手動前提
+
+Cloud Build の GitHub 連携は 1st-gen GitHub App のインストールとリポジトリ接続を GCP Console で手動実施する。接続が完了するまで `google_cloudbuild_trigger` の apply は失敗する。
+
+## 機密の扱い
+
+`db_password` はコミットしない tfvars で渡す。例:
+
+```hcl
+# secrets.auto.tfvars
+db_password = "..."
 ```
+
+`terraform/.gitignore` で `*.auto.tfvars` は除外済み。`terraform.tfvars`、コード、outputs には DB パスワードや実 DATABASE_URL を書かない。DB ユーザーの password は `password_wo` で渡し、state に平文を残さない。
 
 ## 前提
 
-- gcloud CLI 認証済み（`gcloud auth login`）
-- 対象プロジェクトで課金有効・必要 API 有効化済み
-- Terraform >= 1.5
+- Terraform **1.11 以上**（`password_wo` 書き込み専用引数を使用）
+- gcloud 認証済み（terraform は ADC もしくは `GOOGLE_OAUTH_ACCESS_TOKEN=$(gcloud auth print-access-token)` を使用）
+- `terraform.tfvars` に `project_id` / `github_owner` / `github_repo` を指定。`db_password` は `secrets.auto.tfvars`（未コミット）で渡す
 
-## 使い方
+## 使い方（二段階 apply）
+
+Cloud Run は `DATABASE_URL` の Secret を `latest` で参照するため、**Secret に version が無いと初回 apply で Cloud Run 作成に失敗する**。先に Secret 枠と Cloud SQL を作り、値を投入してから全体を apply する。
 
 ```bash
 cd terraform
-
-# 初期化 → 差分確認 → 適用
 terraform init
-terraform plan
+
+# 1) Secret 枠と Cloud SQL を先に作成
+terraform apply \
+  -target=google_secret_manager_secret.database_url \
+  -target=google_sql_database_instance.main \
+  -target=google_sql_database.app \
+  -target=google_sql_user.app
+
+# 2) Private IP を確認し、DATABASE_URL を Secret に投入（値は GUI/gcloud で。コードには置かない）
+terraform output -raw db_private_ip
+printf '%s' 'postgresql://todo_app:<PW>@<PrivateIP>:5432/todo?schema=public' \
+  | gcloud secrets versions add todo-database-url \
+      --project=aixeed-training-2026-07 --data-file=-
+
+# 3) 残り（Cloud Run / Cloud Build / Artifact Registry / IAM）を apply
 terraform apply
-
-# 出力の確認
-terraform output
 ```
 
-`terraform.tfvars` で `project_id` と `iap_user` を指定する。既定リージョンは `asia-northeast1`。
+その後 `cd-*` タグを push すると Cloud Build が実イメージをビルドして Artifact Registry へ push し、Cloud Run にデプロイする（マイグレーションはコンテナ起動時に実行）。
 
-## IAP トンネル経由の psql 疎通確認
+## CI/CD
 
-```bash
-# トンネルを開く（フォアグラウンド。Bastion を起動し socat 待受を確認してトンネル開設）
-./scripts/connect-db.sh
-
-# 別ターミナルで psql 接続。パスワードは以下いずれかで取得する。
-#   ローカル state から（Secret Manager 読取権限が無い環境はこちら）:
-terraform output -raw db_password
-#   権限があれば Secret Manager から:
-#   gcloud secrets versions access latest --secret=todo-db-password --project=aixeed-training-2026-07
-psql -h localhost -p 15432 -U todo_app -d todo -c "SELECT version();"
-```
-
-終了は `Ctrl+C`。Bastion VM は自動停止する（課金最小化）。
+- `ci-*` タグ push: `npm ci && npm run build && npx tsc --noEmit`（DB 非依存の build + 型チェック）
+- `cd-*` タグ push: Docker build、Artifact Registry push、Cloud Run deploy
+- CD のビルド定義はリポジトリルートの `cloudbuild.yaml`
+- DB 統合テスト（PostgreSQL 必須）は GitHub Actions（`.github/workflows/test.yml`）の postgres service で実行する
 
 ## 撤去
 
 ```bash
+cd terraform
 terraform destroy
 ```
 
-学習用のため削除保護は無効化してある（`deletion_protection = false`）。
-
-## 補足・本番との差分
-
-- state はローカル管理。本番では GCS backend（バケット + バージョニング）へ移行する。
-- 学習用に `db-f1-micro` / `availability_type = ZONAL`。本番は用途に応じて上げる。
-- OS Login / SSH には `roles/iap.tunnelResourceAccessor` に加えプロジェクトの SSH 権限が要る。
-  本プロジェクトのオーナー/編集者であれば充足する。
+学習用のため Cloud Run と Cloud SQL の削除保護は無効化している。

@@ -1,5 +1,5 @@
 # =============================================================================
-# VPC / サブネット / ファイアウォール / Private Service Access
+# VPC / Direct VPC egress サブネット / Private Service Access
 # =============================================================================
 
 resource "google_compute_network" "main" {
@@ -10,49 +10,16 @@ resource "google_compute_network" "main" {
   depends_on = [google_project_service.enabled]
 }
 
-# Bastion VM 用サブネット
-resource "google_compute_subnetwork" "bastion" {
-  name          = "${var.name_prefix}-bastion-subnet"
+# Cloud Run Direct VPC egress 用サブネット
+resource "google_compute_subnetwork" "egress" {
+  name          = "${var.name_prefix}-egress-subnet"
   project       = var.project_id
   region        = var.region
   network       = google_compute_network.main.id
-  ip_cidr_range = var.bastion_subnet_cidr
+  ip_cidr_range = var.egress_subnet_cidr
 
-  # Bastion は外部 IP を持たないため、Private Google Access を有効化して
-  # gcloud / パッケージ取得などの Google API アクセスを可能にする
+  # Direct VPC egress 経由の Cloud Run から Google API へ到達できるようにする
   private_ip_google_access = true
-}
-
-# Cloud Run → VPC egress 用の Serverless VPC Access コネクタ（/28 が必須）
-resource "google_vpc_access_connector" "main" {
-  name          = "${var.name_prefix}-connector"
-  project       = var.project_id
-  region        = var.region
-  network       = google_compute_network.main.name
-  ip_cidr_range = var.connector_cidr
-
-  # 学習用途のため最小構成
-  min_instances = 2
-  max_instances = 3
-  machine_type  = "e2-micro"
-
-  depends_on = [google_project_service.enabled]
-}
-
-# IAP 経由の SSH（22）と DB トンネル（5432）のみを Bastion に許可する
-resource "google_compute_firewall" "allow_iap" {
-  name    = "${var.name_prefix}-allow-iap"
-  project = var.project_id
-  network = google_compute_network.main.id
-
-  allow {
-    protocol = "tcp"
-    ports    = ["22", "5432"]
-  }
-
-  # IAP の送信元 IP レンジ（固定）
-  source_ranges = ["35.235.240.0/20"]
-  target_tags   = ["bastion"]
 }
 
 # =============================================================================
@@ -64,7 +31,7 @@ resource "google_compute_global_address" "private_ip" {
   project       = var.project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
-  prefix_length = 16
+  prefix_length = 24 # 学習用途には /24 で十分（/16 は過大予約）
   network       = google_compute_network.main.id
 }
 

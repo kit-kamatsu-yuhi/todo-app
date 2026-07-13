@@ -48,4 +48,6 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 # standalone 出力のエントリポイント。
-CMD ["node", "server.js"]
+# 起動時に prisma migrate deploy を実行してから本体を起動する（Cloud Run / compose 共通）。
+# Cloud Run では Direct VPC egress で Cloud SQL の Private IP に到達してマイグレーションを適用する。
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]

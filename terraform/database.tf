@@ -2,29 +2,17 @@
 # Cloud SQL (PostgreSQL, Private IP only) + Secret Manager
 # =============================================================================
 
-# アプリ用 DB ユーザーのパスワードを自動生成する
-resource "random_password" "db" {
-  length = 24
-  # psql / 接続文字列で扱いやすい記号のみに限定する
-  special          = true
-  override_special = "_-"
-}
-
-# 生成したパスワードを Secret Manager で管理する
-resource "google_secret_manager_secret" "db_password" {
+# DATABASE_URL 用の Secret Manager 枠のみ作成する。
+# 値の version は apply 後に GUI または gcloud で投入する。
+resource "google_secret_manager_secret" "database_url" {
   project   = var.project_id
-  secret_id = "${var.name_prefix}-db-password"
+  secret_id = "${var.name_prefix}-database-url"
 
   replication {
     auto {}
   }
 
   depends_on = [google_project_service.enabled]
-}
-
-resource "google_secret_manager_secret_version" "db_password" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = random_password.db.result
 }
 
 # Cloud SQL インスタンス（Public IP 無効・Private IP のみ）
@@ -77,8 +65,6 @@ resource "google_sql_user" "app" {
   project  = var.project_id
   instance = google_sql_database_instance.main.name
 
-  # 値は random_password から参照する（コード上にリテラルは持たない）
-  password = (
-    random_password.db.result
-  )
+  password_wo         = var.db_password
+  password_wo_version = var.db_password_version
 }

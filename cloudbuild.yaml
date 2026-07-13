@@ -1,0 +1,37 @@
+substitutions:
+  _REGION: asia-northeast1
+  _SERVICE: todo-app
+  _REPO: todo-app
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$TAG_NAME
+      - .
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$TAG_NAME
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$TAG_NAME
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --quiet
+
+# 実イメージ・env・VPC egress・実行 SA・起動時 migrate（CMD）は Cloud Run 既存サービスへの
+# デプロイでマージ保持される（初期構成は Terraform 側で定義済み）。
+options:
+  logging: CLOUD_LOGGING_ONLY
