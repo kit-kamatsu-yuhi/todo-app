@@ -1,6 +1,8 @@
-# デプロイ先プロジェクトと IAP 許可ユーザー
+# デプロイ先プロジェクトと GitHub リポジトリ
 project_id = "aixeed-training-2026-07"
-iap_user   = "kamatsu.yuhi@gcp.k-idea.jp"
+
+github_owner = "kit-kamatsu-yuhi"
+github_repo  = "todo-app"
 
 # 既定値を使う場合は以下は省略可
 # region   = "asia-northeast1"

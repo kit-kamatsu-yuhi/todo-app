@@ -8,16 +8,6 @@ output "cloud_run_service_account" {
   value       = google_service_account.cloud_run.email
 }
 
-output "bastion_name" {
-  description = "Bastion VM のインスタンス名"
-  value       = google_compute_instance.bastion.name
-}
-
-output "bastion_zone" {
-  description = "Bastion VM のゾーン"
-  value       = google_compute_instance.bastion.zone
-}
-
 output "db_instance_name" {
   description = "Cloud SQL インスタンス名"
   value       = google_sql_database_instance.main.name
@@ -43,20 +33,34 @@ output "db_user" {
   value       = google_sql_user.app.name
 }
 
-output "db_password_secret" {
-  description = "DB パスワードを格納した Secret Manager のシークレット名"
-  value       = google_secret_manager_secret.db_password.secret_id
+output "database_url_secret" {
+  description = "DATABASE_URL を格納する Secret Manager のシークレット名"
+  value       = google_secret_manager_secret.database_url.secret_id
 }
 
-output "psql_connect_hint" {
-  description = "IAP トンネル経由での接続手順（scripts/connect-db.sh 実行後）"
-  value       = "psql -h localhost -p 15432 -U ${google_sql_user.app.name} -d ${google_sql_database.app.name}"
+output "artifact_registry_repo" {
+  description = "Artifact Registry リポジトリ ID"
+  value       = google_artifact_registry_repository.app.repository_id
 }
 
-# ローカル検証用。Secret Manager を読めない環境向けに state から取得する。
-# `terraform output -raw db_password` で取り出す。state 同様コミットしないこと。
-output "db_password" {
-  description = "アプリ用 DB ユーザーのパスワード（機微・ローカル state 由来）"
-  value       = random_password.db.result
-  sensitive   = true
+output "cloud_build_service_account" {
+  description = "Cloud Build 実行 SA"
+  value       = google_service_account.cloud_build.email
+}
+
+output "ci_trigger_name" {
+  description = "CI 用 Cloud Build トリガー名"
+  value       = google_cloudbuild_trigger.ci.name
+}
+
+output "cd_trigger_name" {
+  description = "CD 用 Cloud Build トリガー名"
+  value       = google_cloudbuild_trigger.cd.name
+}
+
+output "database_url_template" {
+  description = "<PASSWORD> を実際の DB パスワードに置換して Secret Manager (database_url) に version として投入する"
+  value       = "postgresql://${google_sql_user.app.name}:<PASSWORD>@${google_sql_database_instance.main.private_ip_address}:5432/${google_sql_database.app.name}?schema=public"
+  # Private IP / DB ユーザーを含むためログ共有時の露出を避ける
+  sensitive = true
 }

@@ -10,7 +10,7 @@ variable "region" {
 }
 
 variable "zone" {
-  description = "Bastion VM のゾーン"
+  description = "デフォルトゾーン"
   type        = string
   default     = "asia-northeast1-a"
 }
@@ -21,23 +21,12 @@ variable "name_prefix" {
   default     = "todo"
 }
 
-variable "iap_user" {
-  description = "IAP トンネル経由の SSH / TCP アクセスを許可する Google アカウント（user:<email> の email 部分）"
-  type        = string
-}
-
 # --- ネットワーク CIDR ---
 
-variable "bastion_subnet_cidr" {
-  description = "Bastion 用サブネットの CIDR"
+variable "egress_subnet_cidr" {
+  description = "Direct VPC egress 用サブネットの CIDR"
   type        = string
   default     = "10.10.0.0/24"
-}
-
-variable "connector_cidr" {
-  description = "Serverless VPC Access コネクタ用の /28 CIDR（Cloud Run → VPC egress 用）"
-  type        = string
-  default     = "10.8.0.0/28"
 }
 
 # --- Cloud SQL ---
@@ -64,4 +53,36 @@ variable "db_user" {
   description = "アプリ用 DB ユーザー名"
   type        = string
   default     = "todo_app"
+}
+
+variable "db_password" {
+  description = "アプリ用 DB ユーザーのパスワード（未コミットの tfvars で渡す。password_wo 経由で state に平文を残さない）"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password_version" {
+  description = "DB パスワードのローテーション用バージョン。db_password を変えたら increment する"
+  type        = number
+  default     = 1
+}
+
+# --- Cloud Run ---
+
+variable "allow_unauthenticated" {
+  description = "Cloud Run を未認証（allUsers）で公開するか。true で公開"
+  type        = bool
+  default     = true
+}
+
+# --- Cloud Build ---
+
+variable "github_owner" {
+  description = "Cloud Build トリガーが参照する GitHub リポジトリのオーナー"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "Cloud Build トリガーが参照する GitHub リポジトリ名"
+  type        = string
 }
