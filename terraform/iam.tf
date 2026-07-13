@@ -15,13 +15,14 @@ resource "google_service_account" "cloud_run" {
   depends_on = [google_project_service.enabled]
 }
 
-# Cloud Run: DB シークレット読取（secret 単位に限定）+ ログ書込。
+# Cloud Run: DB シークレット読取 + ログ書込。
+# 本来は secret 単位に絞りたいが、実行ユーザーが secret 単位の setIamPolicy 権限を
+# 持たない（非オーナー）ため、プロジェクト単位で付与する。
 # Direct VPC egress + パスワード認証で Private IP へ直結するため cloudsql.client は不要。
-resource "google_secret_manager_secret_iam_member" "cloud_run_db_secret" {
-  project   = var.project_id
-  secret_id = google_secret_manager_secret.database_url.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+resource "google_project_iam_member" "cloud_run_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.cloud_run.email}"
 }
 
 resource "google_project_iam_member" "cloud_run_log_writer" {
@@ -46,13 +47,12 @@ resource "google_project_iam_member" "cloud_build_run_developer" {
   member  = "serviceAccount:${google_service_account.cloud_build.email}"
 }
 
-# Artifact Registry への push は該当リポジトリ単位に限定する
-resource "google_artifact_registry_repository_iam_member" "cloud_build_writer" {
-  project    = var.project_id
-  location   = var.region
-  repository = google_artifact_registry_repository.app.repository_id
-  role       = "roles/artifactregistry.writer"
-  member     = "serviceAccount:${google_service_account.cloud_build.email}"
+# Artifact Registry への push 権限。本来は repository 単位に絞りたいが、実行ユーザーが
+# repository 単位の setIamPolicy 権限を持たないため、プロジェクト単位で付与する。
+resource "google_project_iam_member" "cloud_build_artifact_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.cloud_build.email}"
 }
 
 resource "google_project_iam_member" "cloud_build_log_writer" {
