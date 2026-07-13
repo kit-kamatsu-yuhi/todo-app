@@ -69,10 +69,10 @@ variable "db_password_version" {
 
 # --- Cloud Run ---
 
-variable "allow_unauthenticated" {
-  description = "Cloud Run を未認証（allUsers）で公開するか。true で公開"
-  type        = bool
-  default     = true
+variable "invoker_user" {
+  description = "Cloud Run を呼び出せるユーザー（org ポリシーで allUsers 不可のため認証アクセス用に付与）"
+  type        = string
+  default     = "kamatsu.yuhi@gcp.k-idea.jp"
 }
 
 # --- Cloud Build ---

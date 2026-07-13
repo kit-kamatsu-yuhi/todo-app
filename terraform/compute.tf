@@ -58,15 +58,16 @@ resource "google_cloud_run_v2_service" "app" {
     ]
   }
 
-  depends_on = [google_secret_manager_secret_iam_member.cloud_run_db_secret]
+  depends_on = [google_project_iam_member.cloud_run_secret_accessor]
 }
 
-# 公開（未認証許可）。事故防止に変数でゲートする（既定は公開）。
-resource "google_cloud_run_v2_service_iam_member" "public" {
-  count    = var.allow_unauthenticated ? 1 : 0
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.app.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+# 到達用の invoker。組織ポリシーで allUsers（完全公開）が禁止されているため、
+# 指定ユーザー（ドメイン内アカウント）へプロジェクト単位で run.invoker を付与する。
+# 到達確認は認証付き（gcloud run services proxy / identity-token）で行う。
+resource "google_project_iam_member" "invoker" {
+  project = var.project_id
+  role    = "roles/run.invoker"
+  member  = "user:${var.invoker_user}"
+
+  depends_on = [google_cloud_run_v2_service.app]
 }
