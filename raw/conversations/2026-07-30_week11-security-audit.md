@@ -62,11 +62,11 @@ Week 11 宿題の指示に従い、4 層を手動で監査したのち `/securit
 
 ## 決定事項
 
-- 監査結果は本ファイルに記録し、対策は Issue 化して個別に実施する（起票はユーザーが行う）
+- 監査結果は本ファイルに記録し、対策は Issue 化して個別に実施する（ユーザーの指示により High 3 件を起票済み）
 - 対策の優先順位は次のとおり
-  1. **High**: next を 15.5.22 へパッチ更新 + `npm audit fix`（依存脆弱性）
-  2. **High**: セキュリティヘッダー追加（CSP / X-Content-Type-Options / HSTS / X-Frame-Options / Referrer-Policy / Permissions-Policy）
-  3. **High**: DB 権限分離。`todo_migrate`（DDL）と `todo_app`（DML のみ）を分離し GRANT を最小化、起動時 migrate を CMD から分離
+  1. **High**: next を 15.5.22 へパッチ更新 + `npm audit fix`（依存脆弱性）→ Issue #26
+  2. **High**: セキュリティヘッダー追加（CSP / X-Content-Type-Options / HSTS / X-Frame-Options / Referrer-Policy / Permissions-Policy）→ Issue #27
+  3. **High**: DB 権限分離。`todo_migrate`（DDL）と `todo_app`（DML のみ）を分離し GRANT を最小化、起動時 migrate を CMD から分離 → Issue #28
   4. **Medium**: セッション ID を CSPRNG 生成（`crypto.randomBytes(32)` 相当）へ変更
   5. **Medium**: 認証エンドポイントのレート制限（公開範囲拡大の前提条件）
   6. **Low**: password `max(72)`、SameSite=Strict 検討、allowedOrigins の整理、tfstate のリモートバックエンド化
@@ -80,4 +80,4 @@ Week 11 宿題の指示に従い、4 層を手動で監査したのち `/securit
 ## 未解決事項
 
 - wiki/ 層（`wiki/pages/security/` など）が本リポジトリに未整備。doc-management ルール上は wiki への蒸留先が必要だが、今回は raw への記録のみ。wiki 骨格の整備は別課題
-- 対策 Issue の起票と実施（上記優先順位 1〜3 が Week 12 発表までの候補）
+- 対策 Issue の実施（#26 / #27 / #28。Week 12 発表までの実施候補）。Medium 以下（セッション ID の CSPRNG 化・レート制限・password 上限等）は未起票
