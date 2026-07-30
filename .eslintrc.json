@@ -1,6 +1,9 @@
 {
   "root": true,
   "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "rules": {
+    "react/no-danger": "error"
+  },
   "ignorePatterns": [
     "node_modules/",
     ".next/",
