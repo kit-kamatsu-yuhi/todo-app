@@ -1,7 +1,11 @@
 substitutions:
   _REGION: asia-northeast1
   _SERVICE: todo-app
+  _JOB: todo-migrate
   _REPO: todo-app
+
+# migrate job の update + execute --wait が加わり、デフォルト 600s を超えるリスクがあるため延長する。
+timeout: 1200s
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -17,6 +21,32 @@ steps:
       - push
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$TAG_NAME
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: update-migrate-job
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - ${_JOB}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$TAG_NAME
+      - --region
+      - ${_REGION}
+      - --quiet
+  # --wait により migrate 失敗時はこのステップが非ゼロ終了し、deploy に進まない。
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: run-migrate
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - ${_JOB}
+      - --region
+      - ${_REGION}
+      - --wait
+      - --quiet
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: deploy
     entrypoint: gcloud
     args:
@@ -31,7 +61,7 @@ steps:
       - managed
       - --quiet
 
-# 実イメージ・env・VPC egress・実行 SA・起動時 migrate（CMD）は Cloud Run 既存サービスへの
-# デプロイでマージ保持される（初期構成は Terraform 側で定義済み）。
+# 実イメージ・env・VPC egress・実行 SA は Cloud Run 既存サービスへのデプロイで
+# マージ保持される。migrate は Cloud Run Job が実行する（初期構成は Terraform 側で定義済み）。
 options:
   logging: CLOUD_LOGGING_ONLY

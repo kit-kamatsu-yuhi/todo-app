@@ -67,6 +67,24 @@ variable "db_password_version" {
   default     = 1
 }
 
+variable "db_migrate_user" {
+  description = "マイグレーション用 DB ユーザー名"
+  type        = string
+  default     = "todo_migrate"
+}
+
+variable "db_migrate_password" {
+  description = "マイグレーション用 DB ユーザーのパスワード（未コミットの tfvars で渡す。password_wo 経由で state に平文を残さない）"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_migrate_password_version" {
+  description = "DB パスワードのローテーション用バージョン。db_migrate_password を変えたら increment する"
+  type        = number
+  default     = 1
+}
+
 # --- Cloud Run ---
 
 variable "invoker_user" {
