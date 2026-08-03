@@ -48,6 +48,7 @@ resource "google_cloudbuild_trigger" "cd" {
   substitutions = {
     _REGION  = var.region
     _SERVICE = google_cloud_run_v2_service.app.name
+    _JOB     = google_cloud_run_v2_job.migrate.name
     _REPO    = google_artifact_registry_repository.app.repository_id
   }
 

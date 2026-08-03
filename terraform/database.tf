@@ -65,6 +65,35 @@ resource "google_sql_user" "app" {
   project  = var.project_id
   instance = google_sql_database_instance.main.name
 
+  # REASSIGN 後は todo_migrate が全オブジェクトの owner となり、destroy 時に owns objects エラーで詰まる。
+  # 学習用途で撤去を繰り返すため、SQL ユーザーは残したまま state から切り離す。
+  deletion_policy = "ABANDON"
+
   password_wo         = var.db_password
   password_wo_version = var.db_password_version
+}
+
+# マイグレーション専用ユーザー（DDL 担当）。app ユーザーは DML のみに最小化する。
+resource "google_sql_user" "migrate" {
+  name     = var.db_migrate_user
+  project  = var.project_id
+  instance = google_sql_database_instance.main.name
+
+  deletion_policy = "ABANDON"
+
+  password_wo         = var.db_migrate_password
+  password_wo_version = var.db_migrate_password_version
+}
+
+# マイグレーション用 DATABASE_URL の Secret Manager 枠のみ作成する。
+# 値の version は apply 後に GUI または gcloud で投入する。
+resource "google_secret_manager_secret" "database_url_migrate" {
+  project   = var.project_id
+  secret_id = "${var.name_prefix}-database-url-migrate"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.enabled]
 }
